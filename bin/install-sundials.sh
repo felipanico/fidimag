@@ -5,7 +5,7 @@ set -e
 # when SUNDIALS moved to a CMake-based installation. Will install locally.
 # It may need environment variables to work, like `export CC=gcc` in ARCHER.
 
-SUNDIALS=sundials-2.6.2
+SUNDIALS=sundials-4.0.2
 
 # Make sure CMake is installed, since SUNDIALS requires it.
 type cmake >/dev/null 2>&1 || { printf "CMake required to build SUNDIALS. You can install it by typing: \nsudo apt install cmake\n"; exit 1;}

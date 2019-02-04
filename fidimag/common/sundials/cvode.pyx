@@ -14,7 +14,7 @@ cdef extern from "sundials/sundials_types.h":
 cdef extern from "sundials/sundials_nvector.h":
     cdef struct _generic_N_Vector:
         void *content
-        
+
     ctypedef _generic_N_Vector *N_Vector
     N_Vector N_VNew_Serial(long int vec_length)
     N_Vector N_VNew_OpenMP(long int vec_length, int num_threads)
@@ -24,33 +24,40 @@ cdef extern from "sundials/sundials_nvector.h":
     void N_VPrint_OpenMP(N_Vector v)
 
 cdef extern from "nvector/nvector_serial.h":
-    cdef N_Vector N_VMake_Serial(long int vec_length, realtype *v_data)    
+    cdef N_Vector N_VMake_Serial(long int vec_length, realtype *v_data)
     cdef struct _N_VectorContent_Serial:
         long int length
         realtype *data
         booleantype own_data
-        
+
     ctypedef _N_VectorContent_Serial *N_VectorContent_Serial
 
 
 cdef extern from "nvector/nvector_openmp.h":
     cdef N_Vector N_VMake_OpenMP(long int vec_length, realtype *v_data, int num_threads)
-    
+
     cdef struct _N_VectorContent_OpenMP:
         long int length
         realtype *data
         booleantype own_data
         int num_threads
-        
+
     ctypedef _N_VectorContent_OpenMP *N_VectorContent_OpenMP
 
-    
+
+cdef extern from "sundials/sundials_linearsolver.h":
+    cdef struct SUNLinearSolver:
+        pass
+
+
+
 
 cdef extern from "cvode/cvode.h":
     int CV_ADAMS
     int CV_BDF
-    int CV_FUNCTIONAL
-    int CV_NEWTON
+    # Removed in Sundials 4.0.2
+    # int CV_FUNCTIONAL
+    # int CV_NEWTON
     int CV_NORMAL
     int CV_ONE_STEP
 
@@ -82,11 +89,11 @@ cdef extern from "cvode/cvode.h":
     int CV_BAD_T
     int CV_BAD_DKY
     int CV_TOO_CLOSE
-    
+
     ctypedef int (*CVRhsFn)(realtype t, N_Vector y, N_Vector ydot, void *user_data)
     ctypedef int (*CVRootFn)(realtype t, N_Vector y, realtype *gout, void *user_data)
-    
-    void *CVodeCreate(int lmm, int iter)
+
+    void *CVodeCreate(int lmm)
     int CVodeStep "CVode"(void *cvode_mem, realtype tout, N_Vector yout, realtype *tret, int itask) nogil
     int CVodeSetUserData(void *cvode_mem, void *user_data)
     int CVodeSetMaxOrd(void *cvode_mem, int maxord)
@@ -138,41 +145,82 @@ cdef extern from "cvode/cvode.h":
     int CVodeGetNonlinSolvStats(void *cvode_mem, long int *nniters, long int *nncfails)
     char *CVodeGetReturnFlagName(int flag)
     void CVodeFree(void **cvode_mem)
-    
+
     int CVDlsGetNumJacEvals(void *cvode_mem, long int *njevals)
     int CVDlsGetNumRhsEvals(void *cvode_mem, long int *nrevalsLS)
     int CVSpilsGetNumJtimesEvals(void *cvode_mem, long int *njevals)
-    
 
-cdef extern from "cvode/cvode_spgmr.h":
-    int CVSpgmr(void *cvode_mem, int pretype, int max1)
+
+cdef extern from "sunlinsol/sunlinsol_spgmr.h":
+    SUNLinearSolver SUNLinSol_SPGMR(N_Vector y, int pretype, int maxl)
+    int SUNLinSol_SPGMRSetPrecType(SUNLinearSolver S, int pretype)
+    int SUNLinSol_SPGMRSetGSType(SUNLinearSolver S, int gstype)
+    int SUNLinSol_SPGMRSetMaxRestarts(SUNLinearSolver S, int maxrs)
+
+
 
 cdef extern from "cvode/cvode_diag.h":
     int CVDiag(void *cvode_mem)
 
+
+cdef extern form "sundials/sundials_matrix.h":
+    cdef struct SUNMatrix:
+        pass
+
+
+
+cdef extern from "cvode/cvode_ls.h":
+    ctypedef int (*CVLsPrecSetupFn)(realtype t, N_Vector y, N_Vector fy,
+                                   booleantype jok, booleantype *jcurPtr,
+                                   realtype gamma, void *user_data)
+
+    ctypedef int (*CVLsPrecSolveFn)(realtype t, N_Vector y, N_Vector fy,
+                                   N_Vector r, N_Vector z, realtype gamma,
+                                   realtype delta, int lr, void *user_data)
+
+    ctypedef int (*CVLsJacTimesSetupFn)(realtype t, N_Vector y,
+                                       N_Vector fy, void *user_data);
+
+    ctypedef int (*CVLsJacTimesVecFn)(N_Vector v, N_Vector Jv, realtype t,
+                                     N_Vector y, N_Vector fy,
+                                     void *user_data, N_Vector tmp);
+
+    int CVodeSetLinearSolver(void *cvode_mem, SUNLinearSolver LS, SUNMatrix A);
+
 cdef extern from "cvode/cvode_spils.h":
-    int CVSpilsSetPrecType(void *cvode_mem, int pretype)
-    int CVSpilsSetGSType(void *cvode_mem, int gstype)
-    int CVSpilsSetMaxl(void *cvode_mem, int maxl)
-    int CVSpilsSetEpsLin(void *cvode_mem, realtype eplifac)
+    ctypedef CVLsPrecSetupFn CVSpilsPrecSetupFn;
+    ctypedef CVLsPrecSolveFn CVSpilsPrecSolveFn;
+    ctypedef CVLsJacTimesSetupFn CVSpilsJacTimesSetupFn;
+    ctypedef CVLsJacTimesVecFn CVSpilsJacTimesVecFn;
 
-    ctypedef int (*CVSpilsPrecSetupFn)(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);  
-    ctypedef int (*CVSpilsPrecSolveFn)(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data, N_Vector tmp); 
-    int CVSpilsSetPreconditioner(void *cvode_mem, CVSpilsPrecSetupFn pset, CVSpilsPrecSolveFn psolve);
-
+    ctypedef int (*CVSpilsPrecSetupFn)(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data, N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+    ctypedef int (*CVSpilsPrecSolveFn)(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data, N_Vector tmp);
     ctypedef int (*CVSpilsJacTimesVecFn)(N_Vector v, N_Vector Jv, realtype t, N_Vector y, N_Vector fy, void *user_data, N_Vector tmp)
+
     int CVSpilsSetJacTimesVecFn(void *cvode_mem, CVSpilsJacTimesVecFn jtv)
-    
+    int CVSpilsSetLinearSolver(void *cvode_mem, SUNLinearSolver LS);
+    int CVSpilsSetEpsLin(void *cvode_mem, realtype eplifac)
+    int CVSpilsSetPreconditioner(void *cvode_mem, CVSpilsPrecSetupFn pset, CVSpilsPrecSolveFn psolve)
+    int CVSpilsSetJacTimes(void *cvode_mem, CVSpilsJacTimesSetupFn jtsetup, CVSpilsJacTimesVecFn jtimes)
+    int CVSpilsGetWorkSpace(void *cvode_mem, long int *lenrwLS, long int *leniwLS)
+    int CVSpilsGetNumPrecEvals(void *cvode_mem, long int *npevals)
+    int CVSpilsGetNumPrecSolves(void *cvode_mem, long int *npsolves)
+    int CVSpilsGetNumLinIters(void *cvode_mem, long int *nliters)
+    int CVSpilsGetNumConvFails(void *cvode_mem, long int *nlcfails)
+    int CVSpilsGetNumJTSetupEvals(void *cvode_mem, long int *njtsetups)
+    int CVSpilsGetNumJtimesEvals(void *cvode_mem, long int *njvevals)
+    int CVSpilsGetNumRhsEvals(void *cvode_mem, long int *nfevalsLS)
+    int CVSpilsGetLastFlag(void *cvode_mem, long int *flag)
+    char *CVSpilsGetReturnFlagName(long int flag)
+
 cdef extern from "sundials/sundials_iterative.h":
     int PREC_NONE
     int PREC_LEFT
     int PREC_RIGHT
     int PREC_BOTH
-    
+
     int MODIFIED_GS
     int CLASSICAL_GS
-
-
 
 cdef extern from "../../atomistic/lib/clib.h":
     void normalise(double * m, int nxyz)
@@ -310,6 +358,9 @@ cdef class CvodeSolver(object):
     cdef long int nsteps, nfevals, njevals
     cdef int max_num_steps
     cdef int has_jtimes
+
+    cdef SUNLinearSolver sunlinearsolver
+
     cdef str linear_solver
     cdef str parellel_solver
     def __cinit__(self, spins, rhs_fun, jtimes_fun=None, linear_solver="spgmr", rtol=1e-8, atol=1e-8):
@@ -341,7 +392,7 @@ cdef class CvodeSolver(object):
                                       < void * >self.jtimes_fun,
                                       < void * >self.mp, < void * >self.Jmp)
 
-        self.cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON)
+        self.cvode_mem = CVodeCreate(CV_BDF)
 
         flag = CVodeSetUserData(self.cvode_mem, < void*> & self.user_data)
         self.check_flag(flag, "CVodeSetUserData")
@@ -378,8 +429,9 @@ cdef class CvodeSolver(object):
         elif self.linear_solver == "spgmr":
             if self.has_jtimes:
                 # CVSpgmr(cvode_mem, pretype, maxl) p. 27 of CVODE 2.7 manual
-                flag = CVSpgmr(self.cvode_mem, PREC_LEFT, 300)
-                self.check_flag(flag, "CVSpgmr")
+                self.sunlinearsolver = SUNSPGMR(self.u_y, PREC_LEFT, 300)
+                flag = CVodeSetLinearSolver(self.cvode_mem, self.sunlinearsolver, NULL)
+
                 # functions below in p. 37 CVODE 2.7 manual
                 flag = CVSpilsSetJacTimesVecFn(self.cvode_mem, < CVSpilsJacTimesVecFn > self.jvn_fun)
                 self.check_flag(flag, "CVSpilsSetJacTimesVecFn")
@@ -528,7 +580,7 @@ cdef class CvodeSolver_OpenMP(object):
                                       < void * >self.jtimes_fun,
                                       < void * >self.mp, < void * >self.Jmp)
 
-        self.cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON)
+        self.cvode_mem = CVodeCreate(CV_BDF)
 
         flag = CVodeSetUserData(self.cvode_mem, < void*> & self.user_data)
         self.check_flag(flag, "CVodeSetUserData")
