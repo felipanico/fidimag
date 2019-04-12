@@ -38,7 +38,24 @@ cdef extern from "common_clib.h":
     void sd_compute_step (double *spin, double *spin_last, double *magnetisation,
                           double *field,
                           double *mxH, double *mxmxH, double *mxmxH_last, double tau,
+
                           int *pins, int n, int counter, double tmin, double tmax)
+
+
+    # -------------------------------------------------------------------------
+    # From vtk_writer.c
+
+    void WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
+                                  double * m, double * Ms,
+                                  int nx, int ny, int nz,
+                                  char * fname
+                                  )
+
+    void WriteVTK_Polydata2D(double * vertices, int n_vertices,
+                             double * polygons, int n_polygons,
+                             int polygon_order,
+                             double * m, double * Ms,
+                             char * fname)
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -135,6 +152,26 @@ def compute_sd_step(double [:] spin,
                     &mxmxH[0], &mxmxH_last[0], tau, &pins[0],
                     n, counter, tmin, tmax
                     )
+
+
+# -----------------------------------------------------------------------------
+
+def WriteVTK_RectilinearGrid_C(double [:] gridx, double [:] gridy, double [:] gridz,
+                               double [:] m, double [:] Ms,
+                               nx, ny, nz,
+
+                               ):
+
+    WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
+                             double * m, double * Ms,
+                             int nx, int ny, int nz,
+                             char * fname
+                             )
+
+
+
+# -----------------------------------------------------------------------------
+
 
 def normalise(a):
     """
