@@ -159,15 +159,15 @@ def compute_sd_step(double [:] spin,
 def WriteVTK_RectilinearGrid_C(double [:] gridx, double [:] gridy, double [:] gridz,
                                double [:] m, double [:] Ms,
                                nx, ny, nz,
-
+                               str fname
                                ):
 
-    WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
-                             double * m, double * Ms,
-                             int nx, int ny, int nz,
-                             char * fname
+    # C needs a bytes array thus we encode the Python str object
+    WriteVTK_RectilinearGrid(&gridx[0], &gridy[0], &gridz[0],
+                             &m[0], &Ms[0],
+                             nx, ny, nz,
+                             fname.encode('utf-8')
                              )
-
 
 
 # -----------------------------------------------------------------------------
