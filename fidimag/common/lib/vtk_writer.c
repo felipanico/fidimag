@@ -1,29 +1,36 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#define IS_LITTLE_ENDIAN (1 == *(unsigned char *)&(const int){1})
 
 typedef unsigned char uchar;
 // Reverse byte to BigEndian representation (reverse byte order?) from the
-// LittleEndian repr given in Linux (in other architectures this might not be necesssary)
+// LittleEndian repr given in Linux. In other architectures this might not be
+// necesssary, thus we check the machine endianness
 double DoubleSwap( double f )
 {
-   union
-   {
-      double f;
-      // byte b[4];
-      uchar b[sizeof(double)];
-   } dat1, dat2;
-
-   dat1.f = f;
-   dat2.b[0] = dat1.b[7];
-   dat2.b[1] = dat1.b[6];
-   dat2.b[2] = dat1.b[5];
-   dat2.b[3] = dat1.b[4];
-   dat2.b[4] = dat1.b[3];
-   dat2.b[5] = dat1.b[2];
-   dat2.b[6] = dat1.b[1];
-   dat2.b[7] = dat1.b[0];
-   return dat2.f;
+    // LittleEndian if true; otherwise return f as is (BigEndian)
+    if(IS_LITTLE_ENDIAN) {
+    
+        union {
+            double f;
+            // byte b[4];
+            uchar b[sizeof(double)];
+        } dat1, dat2;
+     
+        dat1.f = f;
+        dat2.b[0] = dat1.b[7];
+        dat2.b[1] = dat1.b[6];
+        dat2.b[2] = dat1.b[5];
+        dat2.b[3] = dat1.b[4];
+        dat2.b[4] = dat1.b[3];
+        dat2.b[5] = dat1.b[2];
+        dat2.b[6] = dat1.b[1];
+        dat2.b[7] = dat1.b[0];
+        return dat2.f;
+    } else {
+        return f;
+    }
 }
 
 /* Write array of doubles with size n into the file given by the pointer fptr 
