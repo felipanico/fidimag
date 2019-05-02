@@ -2,6 +2,8 @@ from __future__ import division
 from __future__ import print_function
 
 from fidimag.common.driver_base import DriverBase
+from fidimag.extensions.common_clib import WriteVTK_RectilinearGrid_C
+import os
 
 import numpy as np
 
@@ -83,10 +85,11 @@ class MicroDriver(DriverBase):
         # Savers --------------------------------------------------------------
 
         # VTK saver for the magnetisation/spin field
-        self.VTK = VTK(self.mesh,
-                       directory='{}_vtks'.format(self.name),
-                       filename='m'
-                       )
+        self._vtk_save_directory = '{}_vtks'.format(self.name)
+        # self.VTK = VTK(self.mesh,
+        #                directory='{}_vtks'.format(self.name),
+        #                filename='m'
+        #                )
 
         # Initialise the table for the data file with the simulation
         # information:
@@ -164,10 +167,15 @@ class MicroDriver(DriverBase):
         and the saturation magnetisation values (scalar data) as
         cell data
         """
-        self.VTK.reset_data()
+        if not os.path.isdir(self._vtk_save_directory):
+            os.makedirs(self._vtk_save_directory)
 
-        # Here we save both Ms and spins as cell data
-        self.VTK.save_scalar(self._Ms, name='M_s')
-        self.VTK.save_vector(self.spin.reshape(-1, 3), name='spins')
-
-        self.VTK.write_file(step=self.step)
+        filename = "m_{:06}.vtk".format(self.step)
+        path = os.path.join(self._vtk_save_directory, filename)
+        WriteVTK_RectilinearGrid_C(self.mesh.grid[0],
+                                   self.mesh.grid[1],
+                                   self.mesh.grid[2],
+                                   self.spin,
+                                   self._Ms,
+                                   self.mesh.nx, self.mesh.ny, self.mesh.nz,
+                                   path)

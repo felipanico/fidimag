@@ -53,14 +53,13 @@ void WriteMagData(double * m,   // 3 * nx*ny*nz array
     sprintf(header,"LOOKUP_TABLE default\n");
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
-        printf("%f\n", Ms[i]);
         double d = DoubleSwap(Ms[i]);
         fwrite(&d, sizeof(d), 1, fptr);
     }
 
     // Spin directions ********************************************************
 
-    sprintf(header,"\nVECTORS m double\n");
+    sprintf(header,"\nVECTORS spins double\n");
     fprintf(fptr, "%s", header);
     for(int i = 0; i < n; i++) {
         double dx = DoubleSwap(m[3 * i    ]);
@@ -87,7 +86,7 @@ void WriteVTK_RectilinearGrid(double * gridx, double * gridy, double * gridz,
     fptr = fopen(fname, "wb");
 
     if(fptr == NULL) {
-        printf("Error!");
+        printf("Error opening VTK file!");
         exit(1);
     }
 
@@ -140,7 +139,7 @@ void WriteVTK_Polydata2D(double * vertices, int n_vertices,  // point coordinate
     fptr = fopen(fname, "wb");
 
     if(fptr == NULL) {
-        printf("Error!");
+        printf("Error opening VTK file!");
         exit(1);
     }
 
