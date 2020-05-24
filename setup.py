@@ -115,8 +115,10 @@ com_link = ['-Wl,-rpath,{}'.format(LIB_DIR)]
 lib_paths = [LIB_DIR]
 
 
+
 com_args.append('-fopenmp')
 com_link.append('-fopenmp')
+
 
 
 com_inc = [numpy.get_include(), INCLUDE_DIR]
